@@ -3,7 +3,7 @@ TARGET = Dimecoin-qt
 macx:TARGET = "Dimecoin-Qt"
 VERSION = 1.0.0
 INCLUDEPATH += src src/json src/qt
-QT += core gui network 
+QT += core gui network
 DEFINES += QT_GUI BOOST_THREAD_USE_LIB BOOST_SPIRIT_THREADSAFE
 DEFINES += QT_STATIC
 CONFIG += no_include_pwd
@@ -30,29 +30,42 @@ greaterThan(QT_MAJOR_VERSION, 4) {
 #    BOOST_INCLUDE_PATH, BOOST_LIB_PATH, BDB_INCLUDE_PATH,
 #    BDB_LIB_PATH, OPENSSL_INCLUDE_PATH and OPENSSL_LIB_PATH respectively
 
-###############################################
-# Uncomment to build on Ubuntu
-# ############################################
- BOOST_LIB_PATH=/usr/local/BerkeleyDB.5.0/lib
- BDB_INCLUDE_PATH=/usr/local/BerkeleyDB.5.0/include
-
-
 ##############################################
-# Uncomment to build on Windows
-# after adding dependent libraries in C:/deps/
+# Wherever you compile the dependencies, 
+# specify the path here (linux, windows)
+# /c/deps for windows or $(HOME)/deps on linux for example
+# (not c:\deps cause msys shell is used on windows)
 # ############################################
-# BOOST_LIB_SUFFIX=-mgw46-mt-s-1_55
-# BOOST_INCLUDE_PATH=C:/deps/boost_1_55_0
-# BOOST_LIB_PATH=C:/deps/boost_1_55_0/stage/lib
-# BDB_INCLUDE_PATH=C:/deps/db-5.0.32.NC/build_unix
-# BDB_LIB_PATH=C:/deps/db-5.0.32.NC/build_unix
-# OPENSSL_INCLUDE_PATH=C:/deps/openssl-1.0.1j/include
-# OPENSSL_LIB_PATH=C:/deps/openssl-1.0.1j
-# MINIUPNPC_INCLUDE_PATH=C:/deps/
-# MINIUPNPC_LIB_PATH=C:/deps/miniupnpc
-# QRENCODE_INCLUDE_PATH=C:/deps/qrencode-3.4.4
-# QRENCODE_LIB_PATH=C:/deps/qrencode-3.4.4/.libs
-############################################
+windows {
+	DEPS_PATH = /d/dev/deps/64
+	MINIUPNPC_LIB_PATH = $$DEPS_PATH/miniupnpc
+	MINIUPNPC_INCLUDE_PATH = $$DEPS_PATH
+	BOOST_LIB_PATH = $$DEPS_PATH/boost_1_58_0/stage/lib
+	BOOST_INCLUDE_PATH = $$DEPS_PATH/boost_1_58_0
+	BOOST_LIB_SUFFIX= -mgw73-mt-s-1_58
+	BDB_LIB_PATH = $$DEPS_PATH/db-5.0.32.NC/build_unix
+	BDB_INCLUDE_PATH = $$DEPS_PATH/db-5.0.32.NC/build_unix
+#uncomment and modify below if you don't to want to use openssl static lib provided by mingw-w64 package
+	#OPENSSL_LIB_PATH = $$DEPS_PATH/
+	#OPENSSL_INCLUDE_PATH = $$DEPS_PATH/
+	QRENCODE_INCLUDE_PATH= $$DEPS_PATH/qrencode-3.4.4
+	QRENCODE_LIB_PATH= $$DEPS_PATH/qrencode-3.4.4/.libs
+}
+linux {
+	DEPS_PATH = $(HOME)/deps
+## comment below dependencies if u don't need to compile a static binary on linux
+	MINIUPNPC_LIB_PATH = $$DEPS_PATH/miniupnpc
+	MINIUPNPC_INCLUDE_PATH = $$DEPS_PATH
+	BOOST_LIB_PATH = $$DEPS_PATH/boost_1_58_0/stage/lib
+	BOOST_INCLUDE_PATH = $$DEPS_PATH/boost_1_58_0
+	BDB_LIB_PATH = $$DEPS_PATH/db-5.0.32.NC/build_unix
+	BDB_INCLUDE_PATH = $$DEPS_PATH/db-5.0.32.NC/build_unix
+	OPENSSL_LIB_PATH = $$DEPS_PATH/openssl-1.0.2g
+	OPENSSL_INCLUDE_PATH = $$DEPS_PATH/openssl-1.0.2g/include
+	QRENCODE_INCLUDE_PATH= $$DEPS_PATH/qrencode-3.4.4
+	QRENCODE_LIB_PATH= $$DEPS_PATH/qrencode-3.4.4/.libs
+}
+
 
 OBJECTS_DIR = build
 MOC_DIR = build
@@ -71,6 +84,10 @@ contains(RELEASE, 1) {
     }
 }
 
+mac: {
+QMAKE_LFLAGS_SONAME = -Wl,-install_name
+}
+
 !win32 {
     # for extra security against potential buffer overflows: enable GCCs Stack Smashing Protection
     QMAKE_CXXFLAGS *= -fstack-protector-all
@@ -87,11 +104,14 @@ win32:QMAKE_LFLAGS *= -Wl,--large-address-aware
 
 # use: qmake "USE_QRCODE=1"
 # libqrencode (http://fukuchi.org/works/qrencode/index.en.html) must be installed for support
-contains(USE_QRCODE, 1) {
+# enabled by default if not set to zero explicitely
+!contains(USE_QRCODE, 0) {
+    USE_QRCODE=1
     message(Building with QRCode support)
     DEFINES += USE_QRCODE
     LIBS += -lqrencode
 }
+
 
 # use: qmake "USE_UPNP=1" ( enabled by default; default)
 #  or: qmake "USE_UPNP=0" (disabled by default)
@@ -176,6 +196,7 @@ HEADERS += src/qt/bitcoingui.h \
     src/qt/addressbookpage.h \
     src/qt/signverifymessagedialog.h \
     src/qt/aboutdialog.h \
+    src/qt/donatedialog.h \
     src/qt/editaddressdialog.h \
     src/qt/bitcoinaddressvalidator.h \
     src/alert.h \
@@ -266,6 +287,7 @@ SOURCES += src/qt/bitcoin.cpp \
     src/qt/addressbookpage.cpp \
     src/qt/signverifymessagedialog.cpp \
     src/qt/aboutdialog.cpp \
+    src/qt/donatedialog.cpp \
     src/qt/editaddressdialog.cpp \
     src/qt/bitcoinaddressvalidator.cpp \
     src/alert.cpp \
@@ -343,7 +365,8 @@ FORMS += src/qt/forms/sendcoinsdialog.ui \
     src/qt/forms/sendcoinsentry.ui \
     src/qt/forms/askpassphrasedialog.ui \
     src/qt/forms/rpcconsole.ui \
-    src/qt/forms/optionsdialog.ui
+    src/qt/forms/optionsdialog.ui \
+    src/qt/forms/donatedialog.ui
 
 contains(USE_QRCODE, 1) {
 HEADERS += src/qt/qrcodedialog.h
@@ -446,6 +469,8 @@ win32:!contains(MINGW_THREAD_BUGFIX, 0) {
 
 macx:HEADERS += src/qt/macdockiconhandler.h
 macx:OBJECTIVE_SOURCES += src/qt/macdockiconhandler.mm
+#macx:HEADERS += src/qt/macnotificationhandler.h
+#macx:OBJECTIVE_SOURCES += src/qt/macnotificationhandler.mm
 macx:LIBS += -framework Foundation -framework ApplicationServices -framework AppKit
 macx:DEFINES += MAC_OSX MSG_NOSIGNAL=0
 macx:ICON = src/qt/res/icons/bitcoin.icns
